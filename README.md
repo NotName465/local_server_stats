@@ -34,8 +34,8 @@
 
 ```bash
 # Клонируем репозиторий
-git clone https://github.com/ваш-никнейм/server-stats.git
-cd server-stats
+git clone https://github.com/NotName465/local_server_stats.git
+cd local_server_stats
 
 # Создаем виртуальное окружение
 python -m venv venv
@@ -46,3 +46,5 @@ pip install -r requirements.txt
 
 # Запускаем
 python app.py
+
+Пароль: admin
