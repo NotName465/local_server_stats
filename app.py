@@ -296,95 +296,9 @@ def get_system_info():
         'swap_total': psutil.swap_memory().total,
         'kernel': os.uname().release,
         'hostname': os.uname().nodename,
-        'uptime': time.time() - psutil.boot_time(),
         'last_boot': datetime.datetime.fromtimestamp(psutil.boot_time()).strftime('%Y-%m-%d %H:%M:%S')
     }
     return jsonify(info)
-
-
-@app.route('/api/terminal', methods=['POST'])
-def terminal():
-    """Выполнение команды в терминале"""
-    if not session.get('logged_in'):
-        return jsonify({'error': 'Unauthorized'}), 401
-
-    data = request.json
-    cmd = data.get('cmd', '')
-    if not cmd:
-        return jsonify({'error': 'No command'}), 400
-
-    dangerous = ['rm -rf /', 'dd if=', 'mkfs', ':(){ :|:& };:', 'chmod 777 /']
-    for d in dangerous:
-        if d in cmd:
-            return jsonify({'error': 'Command blocked for security'}), 403
-
-    result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=10)
-    return jsonify({
-        'output': result.stdout + result.stderr,
-        'returncode': result.returncode
-    })
-
-
-@app.route('/api/files/list')
-def list_files():
-    """Список файлов в директории"""
-    path = request.args.get('path', os.path.expanduser('~'))
-    if not os.path.exists(path):
-        return jsonify({'error': 'Path not found'}), 404
-
-    files = []
-    try:
-        for item in os.listdir(path):
-            full_path = os.path.join(path, item)
-            stat = os.stat(full_path)
-            files.append({
-                'name': item,
-                'path': full_path,
-                'is_dir': os.path.isdir(full_path),
-                'size': stat.st_size if os.path.isfile(full_path) else 0,
-                'modified': datetime.datetime.fromtimestamp(stat.st_mtime).strftime('%Y-%m-%d %H:%M:%S')
-            })
-        files.sort(key=lambda x: (not x['is_dir'], x['name']))
-    except PermissionError:
-        return jsonify({'error': 'Permission denied'}), 403
-
-    return jsonify({'path': path, 'files': files})
-
-
-@app.route('/api/files/read')
-def read_file():
-    """Чтение содержимого файла"""
-    path = request.args.get('path')
-    if not path or not os.path.isfile(path):
-        return jsonify({'error': 'Invalid file'}), 400
-
-    try:
-        with open(path, 'r') as f:
-            content = f.read(50000)
-        return jsonify({'content': content, 'path': path})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-
-@app.route('/api/files/save', methods=['POST'])
-def save_file():
-    """Сохранение файла"""
-    if not session.get('logged_in'):
-        return jsonify({'error': 'Unauthorized'}), 401
-
-    data = request.json
-    path = data.get('path')
-    content = data.get('content', '')
-
-    if not path:
-        return jsonify({'error': 'No path'}), 400
-
-    try:
-        with open(path, 'w') as f:
-            f.write(content)
-        return jsonify({'success': True})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
 
 
 # ==================== СТРАНИЦЫ ====================

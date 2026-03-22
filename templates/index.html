@@ -177,46 +177,6 @@
             border-bottom: 1px solid #333;
             padding: 2px 0;
         }
-        .file-browser {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        .file-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px;
-            background: #1a1a2a;
-            border-radius: 8px;
-            cursor: pointer;
-        }
-        .file-item:hover {
-            background: #2a2a3a;
-        }
-        .terminal {
-            background: #000;
-            color: #0f0;
-            font-family: monospace;
-            padding: 15px;
-            border-radius: 10px;
-            height: 400px;
-            overflow-y: auto;
-        }
-        .terminal-input {
-            display: flex;
-            gap: 10px;
-            margin-top: 10px;
-        }
-        .terminal-input input {
-            flex: 1;
-            background: #1a1a2a;
-            border: 1px solid #333;
-            color: #0f0;
-            padding: 10px;
-            border-radius: 8px;
-            font-family: monospace;
-        }
         button {
             background: linear-gradient(90deg, #00d2ff, #3a7bd5);
             border: none;
@@ -244,9 +204,7 @@
             <button class="tab-btn active" data-tab="dashboard">📈 Дашборд</button>
             <button class="tab-btn" data-tab="services">🔄 Службы</button>
             <button class="tab-btn" data-tab="logs">📋 Логи</button>
-            <button class="tab-btn" data-tab="files">📁 Файлы</button>
             <button class="tab-btn" data-tab="network">🌐 Сеть</button>
-            <button class="tab-btn" data-tab="terminal">💻 Терминал</button>
             <button class="tab-btn" data-tab="info">ℹ️ Система</button>
         </div>
 
@@ -310,36 +268,12 @@
             </div>
         </div>
 
-        <!-- Файлы -->
-        <div id="files" class="tab-content">
-            <div class="card">
-                <div class="card-title">
-                    Файловый менеджер
-                    <input type="text" id="current-path" style="width: 300px; background: #1a1a2a; border: 1px solid #333; color: #fff; padding: 5px; border-radius: 5px;">
-                    <button onclick="loadFiles()">Перейти</button>
-                </div>
-                <div id="file-browser" class="file-browser">Загрузка...</div>
-            </div>
-        </div>
-
         <!-- Сеть -->
         <div id="network" class="tab-content">
             <div class="stats-grid">
                 <div class="card">
                     <div class="card-title">Активные подключения</div>
                     <div id="connections-list" style="font-size: 12px; font-family: monospace;">Загрузка...</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Терминал -->
-        <div id="terminal" class="tab-content">
-            <div class="card">
-                <div class="card-title">Веб-терминал</div>
-                <div id="terminal-output" class="terminal">$ </div>
-                <div class="terminal-input">
-                    <input type="text" id="terminal-cmd" placeholder="Введите команду..." onkeypress="if(event.key==='Enter') sendCommand()">
-                    <button onclick="sendCommand()">Выполнить</button>
                 </div>
             </div>
         </div>
@@ -484,43 +418,11 @@
                 });
         }
 
-        let currentPath = '~';
-
-        function loadFiles(path = currentPath) {
-            currentPath = path;
-            document.getElementById('current-path').value = path;
-            fetch(`/api/files/list?path=${encodeURIComponent(path)}`)
-                .then(res => res.json())
-                .then(data => {
-                    let html = `<div class="file-item" onclick="loadFiles('${path}/..')">📁 ..</div>`;
-                    data.files.forEach(f => {
-                        const icon = f.is_dir ? '📁' : '📄';
-                        html += `
-                            <div class="file-item" onclick="${f.is_dir ? `loadFiles('${f.path}')` : `viewFile('${f.path}')`}">
-                                <span>${icon} ${f.name}</span>
-                                <span>${f.is_dir ? '' : formatBytes(f.size)}</span>
-                            </div>
-                        `;
-                    });
-                    document.getElementById('file-browser').innerHTML = html;
-                });
-        }
-
-        function viewFile(path) {
-            fetch(`/api/files/read?path=${encodeURIComponent(path)}`)
-                .then(res => res.json())
-                .then(data => {
-                    const content = data.content || '';
-                    const newWindow = window.open();
-                    newWindow.document.write(`<pre>${escapeHtml(content)}</pre>`);
-                });
-        }
-
         function loadConnections() {
             fetch('/api/network/connections')
                 .then(res => res.json())
                 .then(conns => {
-                    let html = '<table style="width:100%; text-align:left;"><tr><th>Протокол</th><th>Состояние</th><th>Локальный</th><th>Удаленный</th></tr>';
+                    let html = '<table style="width:100%; text-align:left;"> <tr><th>Протокол</th><th>Состояние</th><th>Локальный</th><th>Удаленный</th></tr>';
                     conns.forEach(c => {
                         html += `<tr><td>${c.netid}</td><td>${c.state}</td><td>${c.local}</td><td>${c.peer}</td></tr>`;
                     });
@@ -540,30 +442,8 @@
                         <div class="metric"><span>Ядер:</span><span>${info.cpu_cores}</span></div>
                         <div class="metric"><span>RAM:</span><span>${formatBytes(info.total_ram)}</span></div>
                         <div class="metric"><span>Последняя загрузка:</span><span>${info.last_boot}</span></div>
-                        <div class="metric"><span>Аптайм:</span><span>${Math.floor(info.uptime / 86400)}д ${Math.floor((info.uptime % 86400) / 3600)}ч</span></div>
                     `;
                 });
-        }
-
-        function sendCommand() {
-            const input = document.getElementById('terminal-cmd');
-            const cmd = input.value;
-            if (!cmd) return;
-            input.value = '';
-
-            const output = document.getElementById('terminal-output');
-            output.innerHTML += `<div>$ <span style="color:#0f0;">${escapeHtml(cmd)}</span></div>`;
-
-            fetch('/api/terminal', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ cmd: cmd })
-            })
-            .then(res => res.json())
-            .then(data => {
-                output.innerHTML += `<div style="color:#aaa;">${escapeHtml(data.output || '')}</div>`;
-                output.scrollTop = output.scrollHeight;
-            });
         }
 
         function escapeHtml(text) {
@@ -581,7 +461,6 @@
 
                 if (btn.dataset.tab === 'services') loadServices();
                 if (btn.dataset.tab === 'logs') loadLogs();
-                if (btn.dataset.tab === 'files') loadFiles();
                 if (btn.dataset.tab === 'network') loadConnections();
                 if (btn.dataset.tab === 'info') loadSystemInfo();
             });
@@ -592,7 +471,6 @@
         loadHistory();
         loadServices();
         loadLogs();
-        loadFiles();
         loadConnections();
         loadSystemInfo();
 
