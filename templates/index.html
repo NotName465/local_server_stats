@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Панель управления сервером</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0f0f1a;
+            color: #eee;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        h1 {
+            background: linear-gradient(90deg, #00d2ff, #3a7bd5);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .logout-btn {
+            background: rgba(255,100,100,0.2);
+            padding: 8px 16px;
+            border-radius: 10px;
+            text-decoration: none;
+            color: #ff6a6a;
+            border: 1px solid #ff6a6a;
+        }
+        .tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 10px;
+        }
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: #aaa;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 16px;
+            border-radius: 10px;
+            transition: all 0.2s;
+        }
+        .tab-btn.active {
+            background: linear-gradient(90deg, #00d2ff, #3a7bd5);
+            color: #fff;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .card {
+            background: rgba(30, 30, 40, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .card-title {
+            font-size: 1.2em;
+            margin-bottom: 15px;
+            color: #00d2ff;
+            border-left: 3px solid #00d2ff;
+            padding-left: 10px;
+        }
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .progress-bar {
+            background: #333;
+            border-radius: 10px;
+            overflow: hidden;
+            height: 20px;
+            margin: 10px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            transition: width 0.3s;
+            background: linear-gradient(90deg, #00d2ff, #3a7bd5);
+        }
+        .progress-fill.warning {
+            background: linear-gradient(90deg, #ff6a00, #ee0979);
+        }
+        .core-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 10px;
+        }
+        .core {
+            background: #333;
+            padding: 4px 8px;
+            border-radius: 8px;
+            font-size: 0.8em;
+            flex: 1;
+            text-align: center;
+            min-width: 50px;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-top: 20px;
+        }
+        .service-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .service-status {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+        }
+        .status-active {
+            background: #2e7d32;
+            color: #fff;
+        }
+        .status-inactive {
+            background: #9e9e9e;
+            color: #fff;
+        }
+        .status-failed {
+            background: #c62828;
+            color: #fff;
+        }
+        .service-btn {
+            background: #3a7bd5;
+            border: none;
+            color: white;
+            padding: 4px 12px;
+            margin: 0 4px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .log-viewer {
+            background: #1a1a2a;
+            padding: 15px;
+            border-radius: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .log-line {
+            font-family: monospace;
+            border-bottom: 1px solid #333;
+            padding: 2px 0;
+        }
+        .file-browser {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            background: #1a1a2a;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .file-item:hover {
+            background: #2a2a3a;
+        }
+        .terminal {
+            background: #000;
+            color: #0f0;
+            font-family: monospace;
+            padding: 15px;
+            border-radius: 10px;
+            height: 400px;
+            overflow-y: auto;
+        }
+        .terminal-input {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .terminal-input input {
+            flex: 1;
+            background: #1a1a2a;
+            border: 1px solid #333;
+            color: #0f0;
+            padding: 10px;
+            border-radius: 8px;
+            font-family: monospace;
+        }
+        button {
+            background: linear-gradient(90deg, #00d2ff, #3a7bd5);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Панель управления сервером</h1>
+            <a href="/logout" class="logout-btn">🚪 Выйти</a>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="dashboard">📈 Дашборд</button>
+            <button class="tab-btn" data-tab="services">🔄 Службы</button>
+            <button class="tab-btn" data-tab="logs">📋 Логи</button>
+            <button class="tab-btn" data-tab="files">📁 Файлы</button>
+            <button class="tab-btn" data-tab="network">🌐 Сеть</button>
+            <button class="tab-btn" data-tab="terminal">💻 Терминал</button>
+            <button class="tab-btn" data-tab="info">ℹ️ Система</button>
+        </div>
+
+        <!-- Дашборд -->
+        <div id="dashboard" class="tab-content active">
+            <div class="stats-grid">
+                <div class="card">
+                    <div class="card-title">💻 Процессор</div>
+                    <div id="cpu-stats">Загрузка...</div>
+                </div>
+                <div class="card">
+                    <div class="card-title">🧠 Оперативная память</div>
+                    <div id="ram-stats">Загрузка...</div>
+                </div>
+                <div class="card">
+                    <div class="card-title">💾 Диски</div>
+                    <div id="disk-stats">Загрузка...</div>
+                </div>
+                <div class="card">
+                    <div class="card-title">⏱️ Система</div>
+                    <div id="system-stats">Загрузка...</div>
+                </div>
+                <div class="card">
+                    <div class="card-title">🌐 Сеть</div>
+                    <div id="network-stats">Загрузка...</div>
+                </div>
+                <div class="card">
+                    <div class="card-title">🔋 Питание</div>
+                    <div id="battery-stats">Загрузка...</div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-title">📈 История нагрузки</div>
+                <div class="chart-container">
+                    <canvas id="cpuChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Службы -->
+        <div id="services" class="tab-content">
+            <div class="card">
+                <div class="card-title">Управление системными службами</div>
+                <div id="services-list">Загрузка...</div>
+            </div>
+        </div>
+
+        <!-- Логи -->
+        <div id="logs" class="tab-content">
+            <div class="card">
+                <div class="card-title">
+                    Системные логи
+                    <select id="log-unit">
+                        <option value="system">Системные</option>
+                        <option value="sshd">SSH</option>
+                        <option value="nginx">Nginx</option>
+                    </select>
+                    <button onclick="loadLogs()">Обновить</button>
+                </div>
+                <div id="logs-viewer" class="log-viewer">Загрузка...</div>
+            </div>
+        </div>
+
+        <!-- Файлы -->
+        <div id="files" class="tab-content">
+            <div class="card">
+                <div class="card-title">
+                    Файловый менеджер
+                    <input type="text" id="current-path" style="width: 300px; background: #1a1a2a; border: 1px solid #333; color: #fff; padding: 5px; border-radius: 5px;">
+                    <button onclick="loadFiles()">Перейти</button>
+                </div>
+                <div id="file-browser" class="file-browser">Загрузка...</div>
+            </div>
+        </div>
+
+        <!-- Сеть -->
+        <div id="network" class="tab-content">
+            <div class="stats-grid">
+                <div class="card">
+                    <div class="card-title">Активные подключения</div>
+                    <div id="connections-list" style="font-size: 12px; font-family: monospace;">Загрузка...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Терминал -->
+        <div id="terminal" class="tab-content">
+            <div class="card">
+                <div class="card-title">Веб-терминал</div>
+                <div id="terminal-output" class="terminal">$ </div>
+                <div class="terminal-input">
+                    <input type="text" id="terminal-cmd" placeholder="Введите команду..." onkeypress="if(event.key==='Enter') sendCommand()">
+                    <button onclick="sendCommand()">Выполнить</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Системная информация -->
+        <div id="info" class="tab-content">
+            <div class="stats-grid">
+                <div class="card">
+                    <div class="card-title">ℹ️ О системе</div>
+                    <div id="sysinfo">Загрузка...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer" style="text-align: center; margin-top: 20px; color: #666;">
+            Обновляется каждые 3 секунды
+        </div>
+    </div>
+
+    <script>
+        let cpuChart = null;
+
+        function initChart() {
+            const ctx = document.getElementById('cpuChart').getContext('2d');
+            cpuChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        { label: 'CPU %', borderColor: '#00d2ff', data: [], tension: 0.4, fill: false },
+                        { label: 'Память %', borderColor: '#ffaa44', data: [], tension: 0.4, fill: false }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        function loadHistory() {
+            fetch('/api/history?hours=6')
+                .then(res => res.json())
+                .then(data => {
+                    const labels = data.map(d => new Date(d.timestamp * 1000).toLocaleTimeString());
+                    const cpuData = data.map(d => d.cpu_percent);
+                    const memData = data.map(d => d.memory_percent);
+                    if (cpuChart) {
+                        cpuChart.data.labels = labels;
+                        cpuChart.data.datasets[0].data = cpuData;
+                        cpuChart.data.datasets[1].data = memData;
+                        cpuChart.update();
+                    }
+                });
+        }
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function updateDashboard() {
+            fetch('/api/stats')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.error) return;
+
+                    const coresHtml = data.cpu.percent_per_core.map((core, i) => `<div class="core">${i}: ${core}%</div>`).join('');
+                    document.getElementById('cpu-stats').innerHTML = `
+                        <div class="metric"><span>Загрузка:</span><span>${data.cpu.percent}%</span></div>
+                        <div class="progress-bar"><div class="progress-fill" style="width: ${data.cpu.percent}%"></div></div>
+                        <div class="core-grid">${coresHtml}</div>
+                        ${data.cpu.temperature ? `<div class="metric"><span>Температура:</span><span>🌡️ ${data.cpu.temperature}°C</span></div>` : ''}
+                    `;
+
+                    document.getElementById('ram-stats').innerHTML = `
+                        <div class="metric"><span>Всего:</span><span>${formatBytes(data.memory.total)}</span></div>
+                        <div class="metric"><span>Использовано:</span><span>${formatBytes(data.memory.used)} (${data.memory.percent}%)</span></div>
+                        <div class="progress-bar"><div class="progress-fill" style="width: ${data.memory.percent}%"></div></div>
+                    `;
+
+                    let diskHtml = '';
+                    data.disks.forEach(d => {
+                        diskHtml += `<div class="metric"><span>${d.device} (${d.mount}):</span><span>${formatBytes(d.used)} / ${formatBytes(d.total)} (${d.percent}%)</span></div>
+                                    <div class="progress-bar"><div class="progress-fill" style="width: ${d.percent}%"></div></div>`;
+                    });
+                    document.getElementById('disk-stats').innerHTML = diskHtml;
+
+                    document.getElementById('system-stats').innerHTML = `
+                        <div class="metric"><span>Аптайм:</span><span>${data.uptime.days}д ${data.uptime.hours}ч ${data.uptime.minutes}м</span></div>
+                    `;
+
+                    document.getElementById('network-stats').innerHTML = `
+                        <div class="metric"><span>Отправлено:</span><span>📤 ${formatBytes(data.network.sent)}</span></div>
+                        <div class="metric"><span>Получено:</span><span>📥 ${formatBytes(data.network.recv)}</span></div>
+                    `;
+
+                    if (data.battery) {
+                        document.getElementById('battery-stats').innerHTML = `
+                            <div class="metric"><span>Заряд:</span><span>${data.battery.percent}%</span></div>
+                            <div class="progress-bar"><div class="progress-fill" style="width: ${data.battery.percent}%"></div></div>
+                            <div class="metric"><span>Статус:</span><span>${data.battery.plugged ? '🔌 От сети' : '🔋 От батареи'}</span></div>
+                        `;
+                    }
+                });
+        }
+
+        function loadServices() {
+            fetch('/api/services')
+                .then(res => res.json())
+                .then(services => {
+                    let html = '';
+                    services.forEach(s => {
+                        const statusClass = s.status === 'active' ? 'status-active' : (s.status === 'failed' ? 'status-failed' : 'status-inactive');
+                        html += `
+                            <div class="service-item">
+                                <div><strong>${s.name}</strong><br><small>${s.description}</small></div>
+                                <div>
+                                    <span class="service-status ${statusClass}">${s.status}</span>
+                                    <button class="service-btn" onclick="serviceAction('${s.name}', 'restart')">🔄</button>
+                                    <button class="service-btn" onclick="serviceAction('${s.name}', 'start')">▶️</button>
+                                    <button class="service-btn" onclick="serviceAction('${s.name}', 'stop')">⏹️</button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    document.getElementById('services-list').innerHTML = html;
+                });
+        }
+
+        function serviceAction(name, action) {
+            fetch(`/api/service/${name}/${action}`, { method: 'POST' })
+                .then(() => loadServices());
+        }
+
+        function loadLogs() {
+            const unit = document.getElementById('log-unit').value;
+            fetch(`/api/logs?lines=50&unit=${unit}`)
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('logs-viewer').innerHTML = data.logs.map(l => `<div class="log-line">${escapeHtml(l)}</div>`).join('');
+                });
+        }
+
+        let currentPath = '~';
+
+        function loadFiles(path = currentPath) {
+            currentPath = path;
+            document.getElementById('current-path').value = path;
+            fetch(`/api/files/list?path=${encodeURIComponent(path)}`)
+                .then(res => res.json())
+                .then(data => {
+                    let html = `<div class="file-item" onclick="loadFiles('${path}/..')">📁 ..</div>`;
+                    data.files.forEach(f => {
+                        const icon = f.is_dir ? '📁' : '📄';
+                        html += `
+                            <div class="file-item" onclick="${f.is_dir ? `loadFiles('${f.path}')` : `viewFile('${f.path}')`}">
+                                <span>${icon} ${f.name}</span>
+                                <span>${f.is_dir ? '' : formatBytes(f.size)}</span>
+                            </div>
+                        `;
+                    });
+                    document.getElementById('file-browser').innerHTML = html;
+                });
+        }
+
+        function viewFile(path) {
+            fetch(`/api/files/read?path=${encodeURIComponent(path)}`)
+                .then(res => res.json())
+                .then(data => {
+                    const content = data.content || '';
+                    const newWindow = window.open();
+                    newWindow.document.write(`<pre>${escapeHtml(content)}</pre>`);
+                });
+        }
+
+        function loadConnections() {
+            fetch('/api/network/connections')
+                .then(res => res.json())
+                .then(conns => {
+                    let html = '<table style="width:100%; text-align:left;"><tr><th>Протокол</th><th>Состояние</th><th>Локальный</th><th>Удаленный</th></tr>';
+                    conns.forEach(c => {
+                        html += `<tr><td>${c.netid}</td><td>${c.state}</td><td>${c.local}</td><td>${c.peer}</td></tr>`;
+                    });
+                    html += '</table>';
+                    document.getElementById('connections-list').innerHTML = html;
+                });
+        }
+
+        function loadSystemInfo() {
+            fetch('/api/system/info')
+                .then(res => res.json())
+                .then(info => {
+                    document.getElementById('sysinfo').innerHTML = `
+                        <div class="metric"><span>Хостнейм:</span><span>${info.hostname}</span></div>
+                        <div class="metric"><span>Ядро:</span><span>${info.kernel}</span></div>
+                        <div class="metric"><span>CPU:</span><span>${info.cpu_model}</span></div>
+                        <div class="metric"><span>Ядер:</span><span>${info.cpu_cores}</span></div>
+                        <div class="metric"><span>RAM:</span><span>${formatBytes(info.total_ram)}</span></div>
+                        <div class="metric"><span>Последняя загрузка:</span><span>${info.last_boot}</span></div>
+                        <div class="metric"><span>Аптайм:</span><span>${Math.floor(info.uptime / 86400)}д ${Math.floor((info.uptime % 86400) / 3600)}ч</span></div>
+                    `;
+                });
+        }
+
+        function sendCommand() {
+            const input = document.getElementById('terminal-cmd');
+            const cmd = input.value;
+            if (!cmd) return;
+            input.value = '';
+
+            const output = document.getElementById('terminal-output');
+            output.innerHTML += `<div>$ <span style="color:#0f0;">${escapeHtml(cmd)}</span></div>`;
+
+            fetch('/api/terminal', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cmd: cmd })
+            })
+            .then(res => res.json())
+            .then(data => {
+                output.innerHTML += `<div style="color:#aaa;">${escapeHtml(data.output || '')}</div>`;
+                output.scrollTop = output.scrollHeight;
+            });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById(btn.dataset.tab).classList.add('active');
+
+                if (btn.dataset.tab === 'services') loadServices();
+                if (btn.dataset.tab === 'logs') loadLogs();
+                if (btn.dataset.tab === 'files') loadFiles();
+                if (btn.dataset.tab === 'network') loadConnections();
+                if (btn.dataset.tab === 'info') loadSystemInfo();
+            });
+        });
+
+        initChart();
+        updateDashboard();
+        loadHistory();
+        loadServices();
+        loadLogs();
+        loadFiles();
+        loadConnections();
+        loadSystemInfo();
+
+        setInterval(updateDashboard, 3000);
+        setInterval(loadHistory, 30000);
+    </script>
+</body>
+</html>
